@@ -1,33 +1,26 @@
 document.getElementById('inputfile').addEventListener('change', function() {
   
   var fileReader=new FileReader();
-  var raw_list = [];
-  var processed_list = [];
-  var summed_up_list = [];
-  var largest_number = 0;
-  var second_largest_number = 0;
-  var third_largest_number = 0;
+  var elfs = [];
+  var sumCalories = 0;
+  var highestCalory = 0;
 
   fileReader.onload=function(){
       document.getElementById('output').textContent=fileReader.result;
-      raw_list = fileReader.result.split("\n");
+
+      list = fileReader.result;
       
-      var tmp_list = [];
+      //Group elfs by calories
+      elfs = list.split("\n");
+      elfs = elfs.toString().split(",,").map(x => x.split(",").filter(y => y.length > 0));
 
-      for(let i=0; i<raw_list.length; i++) {
-        if(raw_list[i].length > 0) {
-          tmp_list.push(raw_list[i]);
-        } else {
-          processed_list.push(tmp_list);
-          tmp_list = [];
-        }
-      }
+      //Sum calories of each elf
+      sumCalories = elfs.map((elf) => {
+        return elf.reduce((cal1, cal2) => parseInt(cal1, 10) + parseInt(cal2, 10), 0);
+      })
 
-      for(let i=0; i<processed_list.length; i++) {
-        summed_up_list[i] = processed_list[i].reduce((n1, n2) => parseInt(n1) + parseInt(n2), 0);
-      }
-
-      largest_number = summed_up_list.sort((a,b) => a-b).reverse()[0];
+      //Highest calory carried by elf
+      highestCalory = sumCalories.sort((a,b) => a-b).reverse()[0];
       console.log(largest_number);
   }
     
