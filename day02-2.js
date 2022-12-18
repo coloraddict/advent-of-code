@@ -1,131 +1,162 @@
 document.getElementById('inputfile').addEventListener('change', function() {
   
-  var fr=new FileReader();
-  var raw_list = [];
-  var limit = 2;
-  var score_list = [];
-  player1_score = [];
-  player2_score = [];
+  var fileReader=new FileReader();
+  
 
-  fr.onload=function(){
-      raw_list = fr.result.split("\n");
+  fileReader.onload=function(){
+      document.getElementById('output').textContent=fileReader.result;
 
-      recreateList();
-      printToFile();
-      manipulateList();
+      guide = fileReader.result;
 
-
-      for(let i=0; i<raw_list.length; i++) {
-        if(raw_list[i][0] === "A" && raw_list[i][1] === "X"){
-          player2_score.push(4);
-        } else if(raw_list[i][0] === "B" && raw_list[i][1] === "Y"){
-          player2_score.push(5);
-        } else if(raw_list[i][0] === "C" && raw_list[i][1] === "Z"){
-          player2_score.push(6);
-        }
-
-        //ROCK WITH PAPER
-        if(raw_list[i][0] === "A" && raw_list[i][1] === "Y"){
-          player2_score.push(8);
-        }
-
-        //ROCK WITH SCISSOR
-        if(raw_list[i][0] === "A" && raw_list[i][1] === "Z"){
-          player2_score.push(3);
-        }
-
-        //PAPER WITH ROCK
-         if(raw_list[i][0] === "B" && raw_list[i][1] === "X"){
-          player2_score.push(1);
-        }
-
-        //PAPER WITH SCISSOR
-        if(raw_list[i][0] === "B" && raw_list[i][1] === "Z"){
-          player2_score.push(9);
-        }
-
-        //SCISSOR WITH ROCK
-         if(raw_list[i][0] === "C" && raw_list[i][1] === "X"){
-          player2_score.push(7);
-        }
-
-        //SCISSOR WITH PAPER
-        if(raw_list[i][0] === "C" && raw_list[i][1] === "Y"){
-          player2_score.push(2);
-        }
-      }
-
-      console.log(raw_list);
-      // console.log("Rawlist length: ", raw_list.length);
-      console.log("player2_score length: ", player2_score.length);
-      // console.log("player2_score list : ", player2_score);
-      console.log("player2_score: " + player2_score.reduce((n1, n2) => n1 + n2, 0));
-      // console.log("player2_score: " + player2_score.reduce((n1, n2) => n1 + n2));
-      // console.log(score_list);
+      var tournament = new Tournament();
+      tournament.begin(guide);
   }
     
-  fr.readAsText(this.files[0]);
+  fileReader.readAsText(this.files[0]);
 
-  function recreateList(){
-    iterate("recreate");
-  }
+  class Tournament{    
 
-  function printToFile(){
-    iterate("print");
-  }
+    constructor(){
+      var guide = [];
+      var opponent = [];
+      var player = [];
+      var totalRounds = 0;
+      var index = 0;
+      var result;
+      var shapes;
 
-  function manipulateList(){
-    iterate("manipulate");
-  }
+      this.shapes = [
+        { "id": ["A", "X"], "name": "rock", "defeats": "scissor", "points": 1, "loses": "paper" }, 
+        { "id": ["B", "Y"], "name": "paper", "defeats": "rock", "points": 2, "loses": "scissor" }, 
+        { "id": ["C", "Z"], "name": "scissor", "defeats": "paper", "points": 3, "loses": "rock" }, 
+      ];
+      var gamePoints;
+    }  
 
-  function iterate(task){
-        for(let i=0; i<raw_list.length; i++) {
-            if(task === "recreate"){
-                raw_list[i] = raw_list[i].split(" ");
-                if(raw_list[i][1] !== undefined){
-                  raw_list[i][1] = raw_list[i][1].replace(/(\r\n|\n|\r)/gm, "");
-                }
-            } else if (task === "print"){
-                document.getElementById('output').textContent+= (i+1) + ": " + raw_list[i].toString() + "\n";
-            } else if(task === "manipulate"){
-                if(raw_list[i][1] === "X"){
-                    lose(i);
-                } else if(raw_list[i][1] === "Y"){
-                    draw(i);
-                } else if(raw_list[i][1] === "Z"){
-                    win(i);
-                }
+    begin(guide){
+      this.guide = guide;
+      this.result = [];
+      this.gamePoints = { "lost": 0, "draw": 3, "won": 6 };
+      this.render();
+      this.startRound();
+    }
+
+    render(){
+      this.index = 0;
+      this.guide = this.guide.split("\n");
+      this.guide = this.guide.map(item => item.replace(/(\r\n|\n|\r)/gm, "").split(" "));
+      this.totalRounds = this.guide.length;
+      this.opponent = this.guide.map(item => {
+        if(item[0] !== undefined || item[0] !== "undefined"){
+          return item[0];
+        }
+      });
+      this.player = this.guide.map(item => {
+        if(item[1] !== undefined || item[1] !== "undefined"){
+          return item[1];
+        }
+      });
+      this.changeStrategy();
+    }
+
+    resolve(){
+      var op = this.opponent[this.index];
+      var pl = this.player[this.index];
+      var op_type = this.getType(op);
+      var pl_type = this.getType(pl);
+      this.result.push(this.finalizeRound(op_type, pl_type));
+      this.nextRound();    
+    }
+
+    changeStrategy(){
+        for(let i=0; i<this.totalRounds; i++) {
+            if(this.player[i] === "X") {
+                this.lose(i);
+            } else if(this.player[i] === "Y") {
+                this.draw(i);
+            } else if(this.player[i] === "Z") {
+                this.win(i);
             }
         }
-  }
-
-  function lose(index){
-    if(raw_list[index][0] === "A"){
-        raw_list[index][1] = "Z";
-    }else if(raw_list[index][0] === "B"){
-        raw_list[index][1] = "X";
-    }else if(raw_list[index][0] === "C"){
-        raw_list[index][1] = "Y";
     }
-  }
 
-  function draw(index){
-    if(raw_list[index][0] === "A"){
-        raw_list[index][1] = "X";
-    }else if(raw_list[index][0] === "B"){
-        raw_list[index][1] = "Y";
-    }else if(raw_list[index][0] === "C"){
-        raw_list[index][1] = "Z";
+    lose(index){
+        if(this.opponent[index] === "A"){
+            this.player[index] = "Z";
+        }else if(this.opponent[index] === "B"){
+            this.player[index] = "X";
+        }else if(this.opponent[index] === "C"){
+            this.player[index] = "Y";
+        }
     }
-  }
 
-  function win(index){
-    if(raw_list[index][0] === "A"){
-        raw_list[index][1] = "Y";
-    }else if(raw_list[index][0] === "B"){
-        raw_list[index][1] = "Z";
-    }else if(raw_list[index][0] === "C"){
-        raw_list[index][1] = "X";
+    draw(index){
+        if(this.opponent[index] === "A"){
+            this.player[index] = "X";
+        }else if(this.opponent[index] === "B"){
+            this.player[index] = "Y";
+        }else if(this.opponent[index] === "C"){
+            this.player[index] = "Z";
+        }
+    }
+
+    win(index){
+        if(this.opponent[index] === "A"){
+            this.player[index] = "Y";
+        }else if(this.opponent[index] === "B"){
+            this.player[index] = "Z";
+        }else if(this.opponent[index] === "C"){
+            this.player[index] = "X";
+        }
+    }
+
+    startRound(){
+      this.resolve();      
+    }
+
+    nextRound(){
+      if(this.index !== (this.totalRounds-1)){
+        this.index++;
+        this.resolve();
+      } else {
+        this.showResult();
+      }
+    }
+
+    getType(t){
+      for(let i=0; i<this.shapes.length; i++) {
+        if(this.shapes[i].id.includes(t)){
+          return this.shapes[i];
+        }
+      }
+    }
+
+    finalizeRound(op, pl){
+      var pts = 0;
+      if(pl.name === op.defeats) {
+        pts = this.getWinningPoints(pl, 'l');
+      } else if (pl.name === op.loses){
+        pts = this.getWinningPoints(pl, 'w');
+      } else {
+        pts = this.getWinningPoints(pl, 'd');
+      }
+      return pts; 
+    }
+
+    getWinningPoints(p, s){
+      var pts = 0;
+      if(s === "l"){
+        pts = this.gamePoints.lost + p.points;
+      } else if(s === "w"){
+        pts = this.gamePoints.won + p.points;
+      } else {
+        pts = this.gamePoints.draw + p.points;
+      }
+      return pts;
+    }
+
+    showResult(){
+      console.log(this.result.reduce((n1, n2) => parseInt(n1, 10) + parseInt(n2, 10), 0));
     }
   }
 
